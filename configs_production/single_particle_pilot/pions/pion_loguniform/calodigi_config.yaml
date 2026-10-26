@@ -18,4 +18,4 @@ seed: 42
 apply_realistic_ecal_digi: 1  # 0=none, 1=silicon, 2=scintillator
 apply_realistic_hcal_digi: 1  # 0=none, 1=scintillator
 
-debug_output_dir: "/global/cfs/cdirs/m4958/data/ColliderML/simulation/single_particle_pilot/single_pion_loguniform/v1/runs/0"
+#debug_output_dir: "/global/cfs/cdirs/m4958/data/ColliderML/simulation/single_particle_pilot/single_pion_loguniform/v1/runs/0"

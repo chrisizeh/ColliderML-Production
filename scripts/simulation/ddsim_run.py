@@ -188,7 +188,7 @@ def configure_physics(ddsim, config, logger):
     if hasattr(config, 'keepAllParticles'):
         ddsim.part.keepAllParticles = config.keepAllParticles
     else:
-        ddsim.part.keepAllParticles = False
+        ddsim.part.keepAllParticles = True
 
     return ddsim
 

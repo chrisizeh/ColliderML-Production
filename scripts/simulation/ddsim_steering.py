@@ -311,7 +311,7 @@ SIM.inputConfig.userInputPlugin = []
 ## Configuration for the generator-level InputFiles 
 ################################################################################
 
-## Set the name of the collection containing the MCParticle input.
+## Set the name of the collection containing the /Users/chrisizeh/Documents/PhD/ColliderML/.venv/lib/python3.11/site-packages/colliderml/cli.pyMCParticle input.
 ##     Default is "MCParticle".
 ##     
 SIM.lcio.mcParticleCollectionName = "MCParticle"
@@ -404,7 +404,7 @@ SIM.outputConfig.userOutputPlugin = None
 SIM.part.enableDetailedHitsAndParticleInfo = False
 
 ##  Keep all created particles 
-SIM.part.keepAllParticles = False
+SIM.part.keepAllParticles = True
 
 ## Minimal distance between particle vertex and endpoint of parent after
 ##     which the vertexIsNotEndpointOfParent flag is set

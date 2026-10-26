@@ -19,6 +19,7 @@ threads: 64
 input_filename: events.hepmc3
 minimalKineticEnergy: 0.1  # Minimum kinetic energy in GeV to register in truth
 truthParticleHandler: "Geant4FullTruthParticleHandler"
+keepAllParticles: True
 
 # debug_output_dir: "/global/cfs/cdirs/m4958/data/ColliderML/public/single_particle_pilot/single_pion/v4/runs/0"
 

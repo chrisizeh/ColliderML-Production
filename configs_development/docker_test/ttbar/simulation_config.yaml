@@ -19,6 +19,7 @@ input_filename: merged_events.hepmc3
 threads: 1
 minimalKineticEnergy: 0.1
 truthParticleHandler: "Geant4FullTruthParticleHandler"
+keepAllParticles: True
 
 vertexOffset: [0.0, 0.0, 0.0, 0.0]
 vertexSigma: [0.0, 0.0, 0.0, 0.0]

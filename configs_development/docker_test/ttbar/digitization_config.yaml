@@ -22,6 +22,7 @@ num_seeds_per_spm: 40
 
 output_particles_root: true
 output_measurements_root: true
+output_all_particles: True
 
 # Emit ACTS-native parquet (Arrow plugin) directly from digi+reco, replacing the
 # convert_all.py post-processing. Handles merged clusters correctly (merging

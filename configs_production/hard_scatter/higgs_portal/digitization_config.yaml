@@ -31,6 +31,7 @@ reco: True
 num_seeds_per_spm: 40
 
 # --- Writing Configuration ---
+output_all_particles: True
 output_particles_root: True
 output_measurements_root: True
 
