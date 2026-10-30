@@ -1,5 +1,59 @@
 # ColliderML Development Repository
 
+## Standalone truth event output
+
+DDSim can write one self-contained `truth_event_<event_id>.root` per event next
+to `edm4hep.root`. Enable `truth_events: true` in generation and simulation
+configs, or pass `--truth-events` to both stages. Generation labels signal and
+pileup particles before ACTS merges them. DDSim saves particles that contribute
+sensitive-detector hits and the SIM/GEN ancestors needed to connect those hits
+to the collision. Hitless sibling branches are discarded. Original particle IDs,
+generator associations and hit ownership are preserved. The shared `truthinfo`
+writer validates and publishes the graph input.
+
+Use the matching **schema 2** standalone-truth-graph checkout. Docker runners
+mount the sibling checkout read-only by default; set `TRUTHINFO_DIR` to another
+checkout if needed. A truthinfo installation in the physics environment also
+works. The native graph extension is unnecessary for writing files.
+
+A small real detector-simulation check, using the existing local physics image:
+
+```bash
+bash scripts/cli/run_truth_smoke_docker.sh
+```
+
+Outputs default to `../data/production/runs/truth_smoke_seed42/runs/0/`.
+Set `OUTPUT_DIR` to a fresh sample directory to repeat it. The two source events
+have IDs 41 and 42, deliberately different from their simulation ordinals.
+Truth capture respects `keepAllParticles: false` for EDM output. It does not
+change Geant4 transport cuts. Full step records, endpoints and transport debug
+files are no longer produced. Temporary ancestry capture is deleted after the
+validated truth event has been written.
+
+With the native standalone library installed, check graph construction and
+complete particle membership and per-channel hit accounting from the files alone:
+
+```bash
+python scripts/cli/check_truth_events.py /path/to/output/runs/0
+```
+
+For an existing standalone development build, use
+`PYTHONPATH=../standalone-truth-graph/build/python` and its configured Python.
+No neighbouring HepMC or EDM4hep file is needed by the checker.
+
+Truth output currently requires one thread and explicit HepMC3 input. For
+untagged legacy **PU0 only** input, declare `truth_signal_only: true` or pass
+`--truth-signal-only`; untagged pileup input cannot be recovered by guessing
+from coordinates. Set `truth_run_id` explicitly, or use a numeric run subdirectory.
+Boundary and backscatter capture are declared unavailable, and their dependent
+level is disabled. Hits store original live ownership and energy without unused
+contribution IDs, positions or times. All configured tracker/calorimeter
+collections are included before analysis cuts. The DDG4-specific adapter lives
+in `scripts/simulation/truth/`; the public schema remains in standalone-truth-graph.
+See [capture details](scripts/simulation/truth/README.md). Hit accounting is not
+a global energy-conservation test: detector-material rest mass, recoil, stopping,
+and escaping particles require the transport record, not nominal graph energies.
+
 ## Quickstart
 
 ``` bash

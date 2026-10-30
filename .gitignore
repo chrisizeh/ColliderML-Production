@@ -8,6 +8,7 @@ log/
 *.log
 
 # Existing ignore patterns for other files
+.DS_Store
 *.pdf
 *.png
 

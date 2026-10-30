@@ -22,7 +22,9 @@
 #
 # Environment Variables:
 #   CONTAINER_IMAGE  - Docker image (default: ghcr.io/opendatadetector/sw:0.2.2_linux-ubuntu24.04_gcc-13.3.0)
-#   OUTPUT_DIR       - Host directory for output (default: ./output)
+#   OUTPUT_DIR       - Host output directory (default: ../data/production/runs/single-stage relative to repo)
+#   COLLIDERML_CACHE - Host dependency cache (default: ../data/production/cache relative to repo)
+#   TRUTHINFO_DIR    - Shared standalone-truth-graph checkout (default: sibling directory)
 #   SEED             - Random seed (default: 42)
 #   RUN_ID           - Run subdirectory (default: 0)
 # =============================================================================
@@ -31,7 +33,6 @@ set -euo pipefail
 
 # --- Configuration ---
 CONTAINER_IMAGE="${CONTAINER_IMAGE:-ghcr.io/opendatadetector/sw:0.2.2_linux-ubuntu24.04_gcc-13.3.0}"
-OUTPUT_DIR="${OUTPUT_DIR:-$(pwd)/output}"
 SEED="${SEED:-42}"
 RUN_ID="${RUN_ID:-0}"
 
@@ -56,6 +57,15 @@ shift 2  # Remaining args passed through to the stage script
 # Get the repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PRODUCTION_DIR="$REPO_ROOT/../data/production"
+# Use the shared event schema/writer from the sibling checkout when developing.
+# A packaged truthinfo installation in the image also works without this mount.
+TRUTHINFO_DIR="${TRUTHINFO_DIR:-$REPO_ROOT/../standalone-truth-graph}"
+TRUTHINFO_MOUNTS=()
+if [ -d "$TRUTHINFO_DIR/TruthInfo/python/truthinfo" ]; then
+    TRUTHINFO_MOUNTS=(-v "$TRUTHINFO_DIR:/truthinfo:ro" -e PYTHONPATH=/truthinfo/TruthInfo/python)
+fi
+OUTPUT_DIR="${OUTPUT_DIR:-$PRODUCTION_DIR/runs/single-stage}"
 
 # Validate files exist
 if [ ! -f "$REPO_ROOT/$CONFIG_PATH" ]; then
@@ -83,7 +93,7 @@ echo "Extra args: $*"
 echo "=============================================="
 
 # --- Ensure cache directory exists ---
-CACHE_DIR="$REPO_ROOT/.cache"
+CACHE_DIR="${COLLIDERML_CACHE:-$PRODUCTION_DIR/cache}"
 mkdir -p "$CACHE_DIR"
 
 # ODD (OpenDataDetector v5.0.0) is handled inside the container by
@@ -107,11 +117,12 @@ if [ ! -f "$CACHE_DIR"/bc_*.deb ]; then
 fi
 
 # --- Run ---
-# Mounts .cache from host for persistent storage of:
+# Mounts the shared production cache from host for persistent storage of:
 #   - ODD detector geometry (cloned from GitHub)
 #   - Geant4 physics datasets (~2 GB, downloaded inside container)
 #   - pip-installed Python packages
-docker run --rm \
+docker run --rm --platform linux/amd64 --entrypoint bash \
+    ${TRUTHINFO_MOUNTS[@]+"${TRUTHINFO_MOUNTS[@]}"} \
     -v "$REPO_ROOT":/workspace \
     -v "$OUTPUT_DIR":/output \
     -v "$CACHE_DIR":/cache \
@@ -124,6 +135,9 @@ docker run --rm \
     "$CONTAINER_IMAGE" \
     -c "
         source /workspace/scripts/cli/setup_container_env.sh
+        if [ -f /opt/acts-arrow/setup.sh ]; then
+            source /opt/acts-arrow/setup.sh
+        fi
 
         cd /workspace/scripts/$(dirname "$STAGE_SCRIPT")
         python3 $(basename "$STAGE_SCRIPT") \

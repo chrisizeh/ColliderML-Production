@@ -1,7 +1,7 @@
 # Docker test: ttbar MadGraph event generation
 # Uses the pre-compiled process from madgraph_init
 campaign: "docker_test"
-dataset: "ttbar"
+dataset: "ttbar_pu0"
 version: "v1"
 stage: "madgraph_generation"
 
@@ -15,7 +15,7 @@ job_config:
 common:
   output_base_dir: "/output"
 
-events: 100
+events: 10
 seed: 42
 
 mg_base_path: "/spack/opt/spack/linux-x86_64/madgraph5amc-3.5.9-2n657hx6flmiuuycb33pfqlhhe2dxmcw"

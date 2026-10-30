@@ -89,7 +89,9 @@ RUN PY=$(ls -d /spack/opt/spack/linux-x86_64/python-venv-*/bin/python3 | head -1
       jinja2 \
       numpy \
       sympy \
-      particle
+      particle \
+      hatchling \
+ && $PY -c "import yaml, jinja2, sympy, hatchling.build"
 
 # Build & install. Configure mirrors the existing spack build args (extracted
 # from the container's spack-configure-args.txt), with three additions:
@@ -117,8 +119,13 @@ RUN bash -c 'set -euo pipefail; \
     echo "$PREFIX_LIST" > /opt/acts-arrow-cmake-prefix.txt; \
     wc -l /opt/acts-arrow-cmake-prefix.txt; head -c 300 /opt/acts-arrow-cmake-prefix.txt; echo'
 
-RUN mkdir -p /opt/acts-arrow-build && cd /opt/acts-arrow-build \
+# ACTS offline codegen inherits purelib from Python_EXECUTABLE. Use the venv
+# populated above, not the underlying Spack Python (which lacks these packages).
+# Hatchling must remain installed there: offline codegen disables build isolation.
+RUN PY=$(ls -d /spack/opt/spack/linux-x86_64/python-venv-*/bin/python3 | head -1) \
+ && mkdir -p /opt/acts-arrow-build && cd /opt/acts-arrow-build \
  && cmake /opt/acts-arrow-src \
+    -DPython_EXECUTABLE="$PY" \
     -DCMAKE_PREFIX_PATH="$(cat /opt/acts-arrow-cmake-prefix.txt)" \
     -DLZ4_LIB=/usr/lib/x86_64-linux-gnu/liblz4.so \
     -DZSTD_LIB=/usr/lib/x86_64-linux-gnu/libzstd.so \

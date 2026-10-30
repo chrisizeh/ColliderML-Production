@@ -1,6 +1,6 @@
 # Docker test: ttbar parquet conversion
 campaign: "docker_test"
-dataset: "ttbar"
+dataset: "ttbar_pu0"
 version: "v1"
 stage: "convert_all"
 

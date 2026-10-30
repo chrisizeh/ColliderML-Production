@@ -1,0 +1,12 @@
+# Two electron-pair showers retaining detector-hit contributors and ancestry.
+events: 2
+input_filename: merged_events.hepmc3
+threads: 1
+minimalKineticEnergy: 0.05
+truthParticleHandler: Geant4FullTruthParticleHandler
+keepAllParticles: false
+truth_events: true
+truth_run_id: 0
+vertexOffset: [0.0, 0.0, 0.0, 0.0]
+vertexSigma: [0.0, 0.0, 0.0, 0.0]
+ddsim_printLevel: 5

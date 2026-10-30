@@ -10,6 +10,8 @@ from acts.examples.hepmc3 import (
     )
 from acts.examples.pythia8 import Pythia8Generator
 import traceback
+import tempfile
+import argparse
 # Removed pyhepmc, numpy imports as they will be handled by the imported module
 
 from utils.app_logging import setup_logging, TimingRecorder
@@ -23,6 +25,8 @@ LOG_LEVEL = acts.logging.INFO
 def parse_args():
     """Parse command line arguments"""
     parser = create_base_parser("Pythia8 event generation and ACTS merging")
+    parser.add_argument("--truth-events", action=argparse.BooleanOptionalAction, default=None,
+                        help="Preserve collision provenance for standalone truth event output")
     
     # Generation control
     parser.add_argument(
@@ -306,6 +310,21 @@ def merge_events(hard_scatter_file, pileup_file, output_dir, config, logger):
     Returns:
         Path: Path to merged output file
     """
+    if getattr(config, 'truth_events', False):
+        from truth.generator import tag_source
+
+        # ACTS preserves particle/vertex attributes while merging. Label physical
+        # collisions before that operation, when their identities are explicit.
+        with tempfile.TemporaryDirectory(prefix=".truth_inputs_", dir=output_dir) as temporary:
+            temporary = Path(temporary)
+            signal = tag_source(hard_scatter_file, temporary / "signal.hepmc3", signal=True)
+            pileup = (tag_source(pileup_file, temporary / "pileup.hepmc3", signal=False)
+                      if getattr(config, 'pileup', 0) > 0 else None)
+            return _merge_events(signal, pileup, output_dir, config, logger)
+    return _merge_events(hard_scatter_file, pileup_file, output_dir, config, logger)
+
+
+def _merge_events(hard_scatter_file, pileup_file, output_dir, config, logger):
     pileup_multiplicity = getattr(config, 'pileup', 1)
     
     logger.info(f"ACTS merging:")
@@ -328,7 +347,11 @@ def merge_events(hard_scatter_file, pileup_file, output_dir, config, logger):
     
     # ACTS HepMC3Reader with merging
     # Build inputs using HepMC3Reader.Input API
-    if getattr(config, 'poisson_sample', False):
+    if pileup_multiplicity == 0:
+        # PU0 still needs vertex smearing and the downstream merged output,
+        # but must not open a pileup file or add a minimum of one collision.
+        inputs = [HepMC3Reader.Input.Fixed(hard_scatter_file, 1)]
+    elif getattr(config, 'poisson_sample', False):
         # Use Poisson sampling for pileup
         inputs = [
             HepMC3Reader.Input.Fixed(hard_scatter_file, 1),
@@ -349,6 +372,9 @@ def merge_events(hard_scatter_file, pileup_file, output_dir, config, logger):
             randomNumbers=rng,
             vertexGenerator=vtxGen,
             numEvents=config.events,
+            # Source event IDs need not be zero-based sequencer ordinals.
+            # Preserve them; the truth writer checks the simulation association.
+            checkEventNumber=False,
         )
     )
     
@@ -372,8 +398,12 @@ def merge_events(hard_scatter_file, pileup_file, output_dir, config, logger):
 def determine_workflow(config, logger):
     """Determine what operations to perform based on config."""
     # Simplest logic: check config directly
-    should_generate_hard_scatter = bool(getattr(config, 'hard_process', None))
-    should_generate_pileup = getattr(config, 'pileup', 0) > 0
+    should_generate_hard_scatter = getattr(config, 'generate_hard_scatter', None)
+    if should_generate_hard_scatter is None:
+        should_generate_hard_scatter = bool(getattr(config, 'hard_process', None))
+    should_generate_pileup = getattr(config, 'generate_pileup', None)
+    if should_generate_pileup is None:
+        should_generate_pileup = getattr(config, 'pileup', 0) > 0
     should_merge = getattr(config, 'merge', False)
     
     logger.info("Workflow determined:")
@@ -415,7 +445,7 @@ def run_workflow(output_dir, config, logger):
             )
             logger.info(f"Found hard scatter file: {hard_scatter_file}")
         
-        if not pileup_file:
+        if not pileup_file and getattr(config, 'pileup', 0) > 0:
             pileup_file = find_pileup_file(
                 output_dir, config,
                 getattr(config, 'pileup_file', None)

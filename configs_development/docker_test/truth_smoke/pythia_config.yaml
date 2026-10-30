@@ -1,0 +1,11 @@
+# Merge one signal and one pileup collision, retaining explicit provenance.
+events: 1
+pileup: 1
+merge: true
+generate_pileup: false
+truth_events: true
+poisson_sample: false
+threads: 1
+vertex_sigma_xy: 0.0
+vertex_sigma_z: 0.0
+vertex_sigma_t: 0.0

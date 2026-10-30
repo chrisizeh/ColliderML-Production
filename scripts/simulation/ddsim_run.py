@@ -1,4 +1,5 @@
 import time
+import argparse
 from pathlib import Path
 import acts
 from DDSim.DD4hepSimulation import DD4hepSimulation
@@ -35,6 +36,12 @@ def parse_args():
         type=int,
         default=None
     )
+    parser.add_argument("--truth-events", action=argparse.BooleanOptionalAction, default=None,
+                        help="Save detector-hit contributors and their ancestry as truth event files")
+    parser.add_argument("--truth-run-id", type=int, default=None,
+                        help="Production run identity for truth files (defaults to numeric output-subdir)")
+    parser.add_argument("--truth-signal-only", action=argparse.BooleanOptionalAction, default=None,
+                        help="Declare unlabelled legacy HepMC input to contain only the signal collision")
     return parser.parse_args()
 
 def configure_particle_gun(ddsim, config, logger):
@@ -188,7 +195,7 @@ def configure_physics(ddsim, config, logger):
     if hasattr(config, 'keepAllParticles'):
         ddsim.part.keepAllParticles = config.keepAllParticles
     else:
-        ddsim.part.keepAllParticles = True
+        ddsim.part.keepAllParticles = False
 
     return ddsim
 
@@ -299,7 +306,26 @@ def run_ddsim(input_path, output_path, config, logger=None):
     logger.info(f"Output: {output_path}")
     logger.info(f"Random seed: {ddsim.random.seed}")
  
-    ddsim.run()
+    truth_output = None
+    if getattr(config, 'truth_events', False):
+        from truth import TruthOutput
+
+        run_id = getattr(config, 'truth_run_id', None)
+        if run_id is None:
+            run_id = int(getattr(config, 'output_subdir', '0') or '0')
+        truth_output = TruthOutput(input_path, Path(output_path).parent, run_id=run_id,
+                                   events=ddsim.numberOfEvents,
+                                   signal_only=getattr(config, 'truth_signal_only', False))
+        # The collector preserves original hit ancestry independently of DDG4's
+        # reduced EDM particle map. Respect the configured EDM truth retention.
+        logger.info("Truth capture enabled: retaining detector-hit contributors and ancestors")
+        ddsim.outputConfig.userOutputPlugin = truth_output.configure
+    status = ddsim.run()
+    if status:
+        raise RuntimeError(f"DDSim failed with exit code {status}")
+    if truth_output is not None:
+        outputs = truth_output.finish()
+        logger.info("Wrote %d standalone truth event files to %s", len(outputs), Path(output_path).parent)
 
     
 
@@ -339,6 +365,7 @@ def main():
     except Exception as e:
         logger.error(f"Fatal error in main: {str(e)}")
         logger.error(traceback.format_exc())
+        raise
     finally:
         # Ensure the report is written even if errors occur
         if timer:

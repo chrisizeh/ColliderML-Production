@@ -1,7 +1,7 @@
-# Docker test: ttbar Pythia generation with low pileup
+# Docker test: ttbar Pythia processing with zero pileup
 # Merges MadGraph hard scatter events with pileup
 campaign: "docker_test"
-dataset: "ttbar"
+dataset: "ttbar_pu0"
 version: "v1"
 stage: "pythia_generation"
 
@@ -16,8 +16,9 @@ common:
   output_base_dir: "/output"
 
 events: 10
-pileup: 10
+pileup: 0
 merge: true
+truth_events: true
 poisson_sample: true
 poisson_buffer_sigma: 5.0
 
